@@ -1,41 +1,37 @@
-function [data_av]=average_data(hf_time,lf_time,varargin)
-% hf_time = high frequency time stamp
-% lf_time = low frequency time stamp
+function [data_av,avints]=average_data(lf_tcuts,hf_tend,hf_data)
+% hf_tend = high frequency time stamp (save time)
+% This measurement represents a few ms of averaging time before the save
+% time
+
+% lf_tcuts = low frequency time cuts. Used to define averaging interval.
 % varargin =  high frequency data to be averaged onto lf_time
 
-% Assert to check number of input arguments, and number of data points that
-% they have is the same as hf_time
+% hf_data is the data to be averaged
+
+% Check that data series has correct number of data points
+assert(length(hf_tend)==length(hf_data))
+
 tic
-nArgs=length(varargin);
-lf_len=size(lf_time);
+lf_len=length(lf_tcuts)-1;
 
-% Create structure containing averaged data, because
-% MATLAB can't easily assign variable names from strings
-for arg=1:nArgs
-    data_av.(inputname(arg+2))=zeros(lf_len);
-end
+data_av=zeros(lf_len,1);
 
+avints=cell(lf_len,1); % This would be better as a separate function.
+% Calculate the averaging intervals once, then do the averaging for
+% whichever data sets are required.
 
-for i=1:lf_len-1 % This loses the last data point so we end up with zero as 
-    % the last value.
-    % Loop through low frequency data, finding all
-    % points which meet the condition of being between the first two
-    % adjacent data points
+for i=1:lf_len
+    % Loop through low frequency data, finding all data points which are
+    % between the time cuts
     
-    indices=find(hf_time>lf_time(i) & hf_time<lf_time(i+1));
+    indices=find(hf_tend>lf_tcuts(i) & hf_tend<lf_tcuts(i+1));
+    avints{i}=indices;
     if size(indices)>0
         % Average the data
-        for arg=1:nArgs
-            data_av.(inputname(arg+2))(i)=mean(varargin{arg}(indices));
-        end
+        data_av(i)=mean(hf_data(indices));
     else
         % Assign NaN
-        for arg=1:nArgs
-            data_av.(inputname(arg+2))(i)=NaN;
-        end
+        data_av(i)=NaN;
     end
 end
 toc
-
-% Save data to csv like this
-% writetable(struct2table(averaged_data),'DL_averaged.csv')
